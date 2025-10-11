@@ -30,3 +30,5 @@ Amaç, yazılım dünyasındaki **hackathon**, **bootcamp**, **ideathon**, **zir
 2. **HTML Extract / Code** node’u ile başlık, tarih ve tür gibi alanlar ayrıştırılır
 3. **Filter** node’u bugünden sonraki etkinlikleri seçer
 4. Yeni kayıtlar **Telegram Send Message** node’u ile bildirilir
+![N8N Flow](n8n.png)
+
