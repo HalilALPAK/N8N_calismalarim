@@ -1,0 +1,502 @@
+{
+  "name": "hackhaton",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            },
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -704,
+        160
+      ],
+      "id": "e8b208be-7b02-41cd-88c0-f2c4645c35c1",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://coderspace.io/etkinlikler",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -336,
+        -208
+      ],
+      "id": "025aabe6-1491-4a57-8ff5-e217f93bdbaf",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "cssSelector": ".events-live-list .mt-3 a,.events-live-list .event-card-type,.events-live-list strong , .events-live-list .event-card-info span",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -128,
+        -208
+      ],
+      "id": "8c184484-44d0-4c3a-9d61-b7da2c49c388",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gelen veri\nconst raw = $json[\"\"];\n\n// 🔹 Etkinlikleri yapılandırmak için boş dizi\nlet events = [];\n\n// 🔹 Her 8 eleman bir etkinliğe ait (title, type, Son Başvuru, tarih, Başlangıç, tarih, Bitiş, tarih)\nfor (let i = 0; i < raw.length; i += 8) {\n  events.push({\n    title: raw[i],\n    type: raw[i + 1],\n    lastApplyLabel: raw[i + 2],\n    lastApplyDate: raw[i + 3],\n    startLabel: raw[i + 4],\n    startDate: raw[i + 5],\n    endLabel: raw[i + 6],\n    endDate: raw[i + 7],\n  });\n}\n\n// 🔹 Türkçe ay adlarını sayıya çevirmek için yardımcı fonksiyon\nfunction parseDate(dateStr) {\n  const months = {\n    \"Ocak\": 0, \"Şubat\": 1, \"Mart\": 2, \"Nisan\": 3, \"Mayıs\": 4, \"Haziran\": 5,\n    \"Temmuz\": 6, \"Ağustos\": 7, \"Eylül\": 8, \"Ekim\": 9, \"Kasım\": 10, \"Aralık\": 11\n  };\n  \n  const parts = dateStr.split(\" \");\n  if (parts.length !== 2) return null;\n  const day = parseInt(parts[0]);\n  const month = months[parts[1]];\n  const year = new Date().getFullYear();\n  \n  return new Date(year, month, day);\n}\n\n// 🔹 Bugünün tarihi\nconst today = new Date();\n\n// 🔹 Title → URL slug dönüştürme\nfunction slugify(title) {\n  return title\n    .toLowerCase()\n    .normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\") // Türkçe karakterleri düzelt\n    .replace(/\\s+/g, \"-\") // boşluk → tire\n    .replace(/[^a-z0-9\\-]/g, \"\"); // özel karakterleri temizle\n}\n\n// 🔹 \"Son Başvuru\" tarihi bugünden sonra olanları filtrele ve link ekle\nconst upcomingEvents = events\n  .filter(e => {\n    const date = parseDate(e.lastApplyDate);\n    return date && date >= today;\n  })\n  .map(e => ({\n    title: e.title,\n    type: e.type,\n    lastApplyDate: e.lastApplyDate,\n    startDate: e.startDate,\n    endDate: e.endDate,\n    link: `https://coderspace.io/etkinlikler/${slugify(e.title)}/`\n  }));\n\n// 🔹 n8n formatına dönüştür\nreturn upcomingEvents.map(e => ({ json: e }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -208
+      ],
+      "id": "44094ec4-1498-44bc-8d9e-710ea96c640e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "https://hackathons.hackclub.com/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        -48
+      ],
+      "id": "6d177141-7c79-48d2-add6-78453509a100",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "cssSelector": ".css-kcq30v .css-1qp34pt , .css-kcq30v .css-lgbo0i , .css-kcq30v .css-1da4wop , .css-1fd9hga .css-1qp34pt , .css-1fd9hga .css-lgbo0i , .css-1fd9hga .css-1da4wop",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        -48
+      ],
+      "id": "4f46c193-53de-40bd-9cd7-1f3ee8e9c256",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "url": "https://devfolio.co/hackathons",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -272,
+        144
+      ],
+      "id": "339e4138-6cd1-44c5-97f3-b364c4c78cab",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "cssSelector": ".cTiRLZ:nth-child(1) .bLFGnB , .cTiRLZ:nth-child(1) .kiBpUv",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        144
+      ],
+      "id": "b95f9b1f-7333-4a10-b37a-64357d33bdb2",
+      "name": "HTML3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kaynak veri\nconst raw = $json[\"\"];\n\n// 🔹 Etkinlikleri burada toplayacağız\nlet events = [];\n\n// 🔹 4’lü gruplar halinde dönelim\nfor (let i = 0; i < raw.length; i += 4) {\n  const mainBlock = raw[i] || \"\";\n  const location = raw[i + 1] || \"\";\n  const status = raw[i + 2] || \"\";\n  const startInfo = raw[i + 3] || \"\";\n\n  // Ana bloktan başlık, link ve türü çıkaralım\n  const titleMatch = mainBlock.split(\"\\n\")[0].trim();\n  const linkMatch = mainBlock.match(/\\[(https?:\\/\\/[^\\]]+)\\]/);\n  const link = linkMatch ? linkMatch[1].trim() : null;\n  const typeMatch = mainBlock.match(/Hackathon|Bootcamp|Ideathon|Datathon|Meet-up|Workshop/i);\n  const type = typeMatch ? typeMatch[0] : \"Other\";\n\n  // Tarihi bulalım\n  const startDateMatch = startInfo.match(/(\\d{2})\\/(\\d{2})\\/(\\d{2})/);\n  const startDate = startDateMatch\n    ? new Date(`20${startDateMatch[3]}-${startDateMatch[2]}-${startDateMatch[1]}`)\n    : null;\n\n  // 🔹 Sadece gelecekteki etkinlikleri alalım\n  const today = new Date();\n  if (!startDate || startDate >= today) {\n    // Başlıktan slug oluştur\n    const slug = titleMatch\n      .toLowerCase()\n      .normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\")\n      .replace(/\\s+/g, \"-\")\n      .replace(/[^a-z0-9\\-]/g, \"\");\n\n    // Nesneyi oluştur\n    events.push({\n      title: titleMatch,\n      type: type,\n      location: location,\n      status: status,\n      startDate: startDate ? startDate.toISOString().split(\"T\")[0] : startInfo.trim(),\n      link: link,\n      customLink: `https://devfolio.co/etkinlikler/${slug}`\n    });\n  }\n}\n\n// 🔹 n8n formatına dönüştür\nreturn events.map(e => ({ json: e }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        144
+      ],
+      "id": "973d2c90-ee7e-43ff-98a6-1d5bbcc3515a",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "url": "https://www.youthall.com/tr/events/all?page=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -272,
+        288
+      ],
+      "id": "cd766c21-dbdc-49db-b935-77a6aa5e4c4b",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "cssSelector": "#filter li , .events__content__title h2",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        288
+      ],
+      "id": "ccd1ce40-23d9-4fe0-8545-b38c102104f0",
+      "name": "HTML4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kaynak veri\nconst raw = $json[\"\"];\n\n// 🔹 Ay eşleme (Türkçe → İngilizce)\nconst months = {\n  \"Ocak\": \"January\",\n  \"Şubat\": \"February\",\n  \"Mart\": \"March\",\n  \"Nisan\": \"April\",\n  \"Mayıs\": \"May\",\n  \"Haziran\": \"June\",\n  \"Temmuz\": \"July\",\n  \"Ağustos\": \"August\",\n  \"Eylül\": \"September\",\n  \"Ekim\": \"October\",\n  \"Kasım\": \"November\",\n  \"Aralık\": \"December\"\n};\n\nlet events = [];\n\nfor (let i = 0; i < raw.length; i += 4) {\n  const title = raw[i] || \"\";\n  const dateStr = raw[i + 1] || \"\";\n  const location = raw[i + 2] || \"\";\n  const type = raw[i + 3] || \"Other\";\n\n  if (!title || title.includes(\"Sonraki\") || title.includes(\"Önceki\")) continue;\n\n  // 🔹 Türkçe tarih biçimini Date'e çevir\n  let eventDate = null;\n  const match = dateStr.match(/(\\d{2}) (\\w+)/);\n  if (match) {\n    const day = match[1];\n    const monthTr = match[2];\n    const monthEn = months[monthTr];\n    if (monthEn) {\n      eventDate = new Date(`${day} ${monthEn} 2025`);\n    }\n  }\n\n  const today = new Date();\n\n  // 🔹 Gelecekteki etkinlikleri al\n  if (!eventDate || eventDate >= today) {\n    // 🔹 Türkçe karakterleri slug'a dönüştür\n    const slug = title\n      .toLowerCase()\n      .replace(/ç/g, \"c\").replace(/ğ/g, \"g\").replace(/ı/g, \"i\")\n      .replace(/ö/g, \"o\").replace(/ş/g, \"s\").replace(/ü/g, \"u\")\n      .replace(/[^a-z0-9\\s-]/g, \"\")\n      .trim()\n      .replace(/\\s+/g, \"-\");\n\n    events.push({\n      title: title.trim(),\n      date: dateStr.trim(),\n      location: location.trim(),\n      type: type.trim(),\n      customLink: `https://coderspace.io/etkinlikler/${slug}`\n    });\n  }\n}\n\n// 🔹 n8n formatına uygun döndür\nreturn events.map(e => ({ json: e }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        288
+      ],
+      "id": "cdffc93a-561d-45b4-8b16-38d41514c213",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "url": "https://www.youthall.com/tr/events/all?page=2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -272,
+        448
+      ],
+      "id": "d593b42d-e639-44d0-9181-1cc89ebf2602",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "cssSelector": "#filter li , .events__content__title h2",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        448
+      ],
+      "id": "106ae97b-2ea9-4044-98da-fa964843ca07",
+      "name": "HTML5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kaynak veri\nconst raw = $json[\"\"];\n\n// 🔹 Ay eşleme (Türkçe → İngilizce)\nconst months = {\n  \"Ocak\": \"January\",\n  \"Şubat\": \"February\",\n  \"Mart\": \"March\",\n  \"Nisan\": \"April\",\n  \"Mayıs\": \"May\",\n  \"Haziran\": \"June\",\n  \"Temmuz\": \"July\",\n  \"Ağustos\": \"August\",\n  \"Eylül\": \"September\",\n  \"Ekim\": \"October\",\n  \"Kasım\": \"November\",\n  \"Aralık\": \"December\"\n};\n\nlet events = [];\n\nfor (let i = 0; i < raw.length; i += 4) {\n  const title = raw[i] || \"\";\n  const dateStr = raw[i + 1] || \"\";\n  const location = raw[i + 2] || \"\";\n  const type = raw[i + 3] || \"Other\";\n\n  if (!title || title.includes(\"Sonraki\") || title.includes(\"Önceki\")) continue;\n\n  // 🔹 Türkçe tarih biçimini Date'e çevir\n  let eventDate = null;\n  const match = dateStr.match(/(\\d{2}) (\\w+)/);\n  if (match) {\n    const day = match[1];\n    const monthTr = match[2];\n    const monthEn = months[monthTr];\n    if (monthEn) {\n      eventDate = new Date(`${day} ${monthEn} 2025`);\n    }\n  }\n\n  const today = new Date();\n\n  // 🔹 Gelecekteki etkinlikleri al\n  if (!eventDate || eventDate >= today) {\n    // 🔹 Türkçe karakterleri slug'a dönüştür\n    const slug = title\n      .toLowerCase()\n      .replace(/ç/g, \"c\").replace(/ğ/g, \"g\").replace(/ı/g, \"i\")\n      .replace(/ö/g, \"o\").replace(/ş/g, \"s\").replace(/ü/g, \"u\")\n      .replace(/[^a-z0-9\\s-]/g, \"\")\n      .trim()\n      .replace(/\\s+/g, \"-\");\n\n    events.push({\n      title: title.trim(),\n      date: dateStr.trim(),\n      location: location.trim(),\n      type: type.trim(),\n      customLink: `https://coderspace.io/etkinlikler/${slug}`\n    });\n  }\n}\n\n// 🔹 n8n formatına uygun döndür\nreturn events.map(e => ({ json: e }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        448
+      ],
+      "id": "938a758c-5cf5-4404-9137-af16d337b4a4",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        368,
+        80
+      ],
+      "id": "8903b762-b0c4-4e1e-b590-e54a90c93576",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "chatId": "1027721740",
+        "text": "={{ $json.title }}{{ $json.type }}{{ $json.lastApplyDate }}{{ $json.link }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        144
+      ],
+      "id": "92c08bda-53d3-4ecf-be23-148ecb679003",
+      "name": "Send a text message",
+      "webhookId": "00285589-d440-4a9d-830a-50ec5f6ccb99",
+      "credentials": {
+        "telegramApi": {
+          "id": "cUXDWVeGrIOJ6TRB",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "HTML3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "HTML4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML4": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "HTML5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML5": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "db984d5b-ae5c-4023-bbb2-0550316b147a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "99fa8329a052f4aa41b45e850fff2c12177cccd92fba3ec014bd05698ca84c28"
+  },
+  "id": "ATrJ3wHwyh1FWK4O",
+  "tags": []
+}
