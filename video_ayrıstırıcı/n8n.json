@@ -1,0 +1,261 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    url: \"https://www.youtube.com/watch?v=NfYX1MWUHYs\"\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -272
+      ],
+      "id": "92e74db5-bfbc-44ae-bcb2-b43fb9cd40ed",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:5000/transcript?id=NfYX1MWUHYs",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        256,
+        -272
+      ],
+      "id": "50a60c36-c51b-41bd-925d-4b6a89fbe67f",
+      "name": "Get Transcript1",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $json.transcript;\nconst clean = t\n  .filter(x => !x.text.includes('[')) // [Müzik], [Alkış] vs at\n  .map(x => `${x.text}`)\n  .join(' ');\nreturn [{ text: clean, raw: t }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -272
+      ],
+      "id": "b956dab4-a4e3-4516-b0f4-8e4f10e4c763",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Aşağıdaki konuşma metninden insanların ilgisini çekecek, viral olabilecek, tartışmaya yaratabilecek tarihi anektodları bul.\nHer biri için şu formatta dön:\n[\n  {\"start_text\": \"cümle örneği\", \"reason\": \"neden dikkat çekici\"}\n]\nTranscript:\n{{ $json[\"text\"] }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -272
+      ],
+      "id": "afd6d96d-8230-4b77-ab3d-fd0bf7a60a73",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        544,
+        -64
+      ],
+      "id": "5a9c26fe-488e-4d0c-a144-b9b077816a69",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QGlfJ3mPvk9Z7sfF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:5000/transcript?id=NfYX1MWUHYs",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        -464
+      ],
+      "id": "60cb82f6-b33a-4953-81a9-361789e4c814",
+      "name": "Get Transcript",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI Agent çıktısı\nconst raw = $json[\"output\"];\n\n// Kod bloğunun içindeki JSON kısmını ayıkla (varsa)\nlet jsonText;\nconst match = raw.match(/```json([\\s\\S]*?)```/);\n\nif (match) {\n  jsonText = match[1];\n} else {\n  // Kod bloğu yoksa, tüm metinde ilk '[' den itibaren al\n  const startIdx = raw.indexOf('[');\n  const endIdx = raw.lastIndexOf(']');\n  if (startIdx !== -1 && endIdx !== -1) {\n    jsonText = raw.slice(startIdx, endIdx + 1);\n  }\n}\n\nlet highlights = [];\ntry {\n  if (jsonText) {\n    highlights = JSON.parse(jsonText);\n  }\n} catch (e) {\n  console.error(\"JSON parse hatası:\", e);\n}\n\nreturn [{ highlights }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        -272
+      ],
+      "id": "990f0085-efbc-42c8-8981-2044cf34fbc4",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -272
+      ],
+      "id": "34c3dc3a-ef80-434d-be3e-df252dc27b76",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalize(str) {\n  return str\n    .toLowerCase()\n    .replace(/[^a-zçğıöşü0-9\\s]/gi, \"\")\n    .trim();\n}\n\nfunction similarity(a, b) {\n  const setA = new Set(a.split(\" \"));\n  const setB = new Set(b.split(\" \"));\n  const inter = [...setA].filter(x => setB.has(x));\n  return inter.length / Math.min(setA.size, setB.size);\n}\n\nconst transcriptData = $input.all().find(i => i.json.transcript)?.json.transcript || [];\nconst highlightData = $input.all().find(i => i.json.highlights)?.json.highlights || [];\n\nconst results = [];\n\nfor (const highlight of highlightData) {\n  const query = normalize(highlight.start_text);\n  let foundIndex = -1;\n  let bestSim = 0;\n\n  for (let i = 0; i < transcriptData.length - 2; i++) {\n    const comboText = normalize(\n      transcriptData.slice(i, i + 3).map(t => t.text).join(\" \")\n    );\n    const sim = similarity(query, comboText);\n    if (sim > bestSim) {\n      bestSim = sim;\n      foundIndex = i;\n    }\n  }\n\n  if (bestSim > 0.4) { // %40 ve üstü benzerlik varsa\n    const seg = transcriptData.slice(foundIndex, foundIndex + 3);\n    const start = seg[0].start;\n    const end = seg[seg.length - 1].start + seg[seg.length - 1].duration;\n    const found_text = seg.map(t => t.text).join(\" \");\n\n    results.push({\n      found_text,\n      reason: highlight.reason,\n      start,\n      end,\n      similarity: bestSim.toFixed(2)\n    });\n  } else {\n    results.push({\n      found_text: null,\n      reason: highlight.reason,\n      start: null,\n      end: null,\n      similarity: bestSim.toFixed(2),\n      note: `Eşleşme bulunamadı: ${highlight.start_text}`\n    });\n  }\n}\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -304
+      ],
+      "id": "b67e10fe-61d8-46f6-bea4-326aae6a15a7",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1376,
+        -304
+      ],
+      "id": "5d441c05-a004-464c-bd6e-b83fd5212037",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Get Transcript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Transcript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Transcript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "99fa8329a052f4aa41b45e850fff2c12177cccd92fba3ec014bd05698ca84c28"
+  }
+}
